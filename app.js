@@ -10,7 +10,7 @@ const Wallet = require('./walletSchema');
 // Initialize Express app and configure environment variables
 const app = express();
 dotenv.config();
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -116,7 +116,8 @@ const connectDB = async () => {
     const conn = await mongoose.connect(process.env.DATABASE);
     console.log(`MongoDB Connected: ${conn.connection.host}`);
 
-    app.listen(port, () => {
+    app.listen(port, '0.0.0.0', () => {
+      console.log('Server running on port 3000')
     });
   } catch (error) {
     console.error('Error connecting to MongoDB:', error.message);
@@ -126,5 +127,4 @@ const connectDB = async () => {
 
 connectDB();
 
-// Export the app for Vercel
 module.exports = app;
