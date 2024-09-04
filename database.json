@@ -1,0 +1,13 @@
+{
+    "dev": {
+      "driver": "pg",
+      "user": "postgres",
+      "password": "Leven11",
+      "host": "localhost",
+      "database": "canaan",
+      "schema": "public",
+      "multipleStatements": true,
+      "sql-file": true
+    }
+  }
+  
