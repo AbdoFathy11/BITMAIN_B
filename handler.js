@@ -95,7 +95,7 @@ class UserClass {
   async findById(id) {
     try {
       await handleIncreasingBalance();
-      return await User.findById(id);
+      return await User.findById(id).lean();
     } catch (error) {
       throw new Error(`Error finding user: ${error.message}`);
     }
@@ -120,10 +120,8 @@ class UserClass {
 
   async updateItemById(id, item, value) {
     try {
-      const user = await User.findById(id);
-      user[item] = value;
-      await user.save();
-      return user;
+      const update = { [item]: value };
+      return await User.findByIdAndUpdate(id, update, { new: true });
     } catch (error) {
       throw new Error(`Error updating user item: ${error.message}`);
     }
@@ -139,7 +137,7 @@ class UserClass {
 
   async addProduct(id, product) {
     try {
-      const user = await User.findById(id);
+      const user = await User.findById(id).lean();
       user.products.push(product);
       await user.save();
     } catch (error) {
@@ -149,7 +147,7 @@ class UserClass {
 
   async increaseInvitesP(id, amount) {
     try {
-      const user = await User.findById(id);
+      const user = await User.findById(id).lean();
       user.invites_p += +amount;
       await user.save();
     } catch (error) {
@@ -159,7 +157,7 @@ class UserClass {
 
   async increaseInvitesQ(id, amount) {
     try {
-      const user = await User.findById(id);
+      const user = await User.findById(id).lean();
       user.invites_q += +amount;
       await user.save();
     } catch (error) {
@@ -209,7 +207,7 @@ class UserClass {
 
   async addDeposit(id, deposit) {
     try {
-      const user = await User.findById(id);
+      const user = await User.findById(id).lean();
       if (!user) {
         throw new Error("User not found");
       }
@@ -223,7 +221,7 @@ class UserClass {
 
   async changeWithdrawStatus(id, withdrawId, status) {
     try {
-      const user = await User.findById(id);
+      const user = await User.findById(id).lean();
       if (!user) {
         throw new Error("User not found");
       }
@@ -246,7 +244,7 @@ class UserClass {
 
   async changeDepositStatus(id, depositId, status) {
     try {
-      const user = await User.findById(id);
+      const user = await User.findById(id).lean();
       if (!user) {
         throw new Error("User not found");
       }
