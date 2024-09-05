@@ -585,12 +585,12 @@ async function dashboardData() {
           userId: "$_id",
           name: 1,
           amount: "$widrawal_request.amount",
-          sendTo: "$widrawal_request.to",
+          sendTo: "$wallet_number",
           withdrawalId: "$widrawal_request._id",
           date: {
             $dateToString: {
               format: "%Y-%m-%d %H:%M", // Format date to include AM/PM
-              date: "$widrawal_request.date",
+              date: "$widrawal_request.start",
               timezone: "Africa/Cairo" // Adjust timezone as needed
             }
           },
