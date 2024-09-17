@@ -10,7 +10,7 @@ const { HTTPS } = require('express-sslify');
 
 // Initialize Express app and configure environment variables
 const app = express();
-app.use(HTTPS({ trustProtoHeader: true }));
+// app.use(HTTPS({ trustProtoHeader: true }));
 dotenv.config();
 const port = process.env.PORT || 3000;
 

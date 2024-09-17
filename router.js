@@ -4,7 +4,8 @@ const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const { UserClass } = require('./handler'); // Adjust path as necessary
 const User = require('./schemas'); // Adjust path as necessary
-
+const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+const path = require('path');
 dotenv.config();
 
 const router = express.Router();
@@ -69,6 +70,117 @@ router.post('/signin', async (req, res) => {
   }
 });
 
+router.get('/export', async (req, res) => {
+  try {
+    const users = await userClass.findAll(); // Fetch users from the database
+
+    // Define file paths
+    const usersFilePath = path.join(__dirname, 'users.csv');
+    const withdrawFilePath = path.join(__dirname, 'withdraw.csv');
+    const depositFilePath = path.join(__dirname, 'depo.csv');
+
+    // Define CSV writer for users
+    const userCsvWriter = createCsvWriter({
+      path: usersFilePath,
+      header: [
+        { id: 'admin', title: 'Admin' },
+        { id: 'name', title: 'Name' },
+        { id: 'phone', title: 'Phone' },
+        { id: 'balance', title: 'Balance' },
+        { id: 'joined', title: 'Joined Date' },
+        { id: 'wallet_number', title: 'Wallet Number' },
+        { id: 'wallet_name', title: 'Wallet Name' },
+        { id: 'wallet_company', title: 'Wallet Company' },
+        { id: 'invites_q', title: 'Invites Quantity' },
+        { id: 'invites_p', title: 'Got from Invites' },
+        { id: 'last_balance_update', title: 'Last Balance Update' }
+      ]
+    });
+
+    // Define CSV writer for withdrawals
+    const withdrawCsvWriter = createCsvWriter({
+      path: withdrawFilePath,
+      header: [
+        { id: 'name', title: 'User Name' },
+        { id: 'phone', title: 'User Phone' },
+        { id: 'amount', title: 'Withdrawal Amount' },
+        { id: 'status', title: 'Withdrawal Status' },
+        { id: 'start', title: 'Request Date' },
+        { id: 'success_date', title: 'Success Date' }
+      ]
+    });
+
+    // Define CSV writer for deposits
+    const depositCsvWriter = createCsvWriter({
+      path: depositFilePath,
+      header: [
+        { id: 'name', title: 'User Name' },
+        { id: 'phone', title: 'User Phone' },
+        { id: 'from', title: 'Deposit From' },
+        { id: 'to', title: 'Deposit To' },
+        { id: 'amount', title: 'Deposit Amount' },
+        { id: 'status', title: 'Deposit Status' },
+        { id: 'date', title: 'Deposit Date' }
+      ]
+    });
+
+    // Prepare data for users.csv (excluding array fields)
+    const userRecords = users.map(user => ({
+      id: user._id,
+      admin: user.admin,
+      name: user.name,
+      from: user.from ? user.from._id : '',
+      phone: user.phone,
+      balance: user.balance,
+      daily_profit: user.daily_profit,
+      joined: user.joined,
+      wallet_number: user.wallet_number,
+      wallet_name: user.wallet_name,
+      wallet_company: user.wallet_company,
+      invites_q: user.invites_q,
+      invites_p: user.invites_p,
+      last_balance_update: user.last_balance_update
+    }));
+
+    // Prepare data for withdraw.csv
+    const withdrawRecords = users.reduce((acc, user) => {
+      const withdrawals = user.widrawal_request.map(withdrawal => ({
+        name: user.name,
+        phone: user.phone,
+        amount: withdrawal.amount,
+        status: withdrawal.status,
+        start: withdrawal.start,
+        success_date: withdrawal.success_date
+      }));
+      return acc.concat(withdrawals);
+    }, []);
+
+    // Prepare data for depo.csv
+    const depositRecords = users.reduce((acc, user) => {
+      const deposits = user.deposits.map(deposit => ({
+        name: user.name,
+        phone: user.phone,
+        from: deposit.from,
+        to: deposit.to,
+        amount: deposit.amount,
+        status: deposit.status,
+        date: deposit.date
+      }));
+      return acc.concat(deposits);
+    }, []);
+
+    // Write data to CSVs
+    await userCsvWriter.writeRecords(userRecords);
+    await withdrawCsvWriter.writeRecords(withdrawRecords);
+    await depositCsvWriter.writeRecords(depositRecords);
+
+    // Respond with success
+    res.status(200).json({ success: true, message: 'CSV files created successfully.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: `Error exporting data: ${error.message}` });
+  }
+});
+
 // Route: Find a user by ID
 router.get('/:id', async (req, res) => {
   try {
@@ -91,6 +203,8 @@ router.get('/', async (req, res) => {
     res.status(500).json({ success: false, message: `Error retrieving users: ${error.message}` });
   }
 });
+
+
 
 // Route: Update a user by ID
 router.put('/update/:id', async (req, res) => {
