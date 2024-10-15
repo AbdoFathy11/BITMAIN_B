@@ -27,7 +27,7 @@ async function initializeWallets() {
 
     if (existingWallets.length === 0) {
       const wallets = [
-        { name: 'Amer', number: '01061973811', active: true },
+        { name: 'Amer', number: '01060990626', active: true },
         { name: 'Fathy', number: '01090471679', active: false }
       ];
       await Wallet.insertMany(wallets);

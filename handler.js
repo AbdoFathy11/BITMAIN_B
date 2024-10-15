@@ -6,11 +6,26 @@ const bcrypt = require("bcrypt");
 
 dotenv.config();
 
-/**
- * Handles the increase of user balances based on their daily profit, deposits, withdrawals, and product costs.
- */
+async function deleteInactiveUsers() {
+  const fourDaysAgo = new Date();
+  fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
+
+  try {
+    const result = await User.deleteMany({
+      joined: { $lt: fourDaysAgo }, 
+      'products.1': { $exists: false }, 
+      invites_q: { $eq: 0 }, 
+    });
+
+    console.log(`${result.deletedCount} users deleted.`);
+  } catch (error) {
+    console.error('Error deleting users:', error);
+  }
+}
+
 async function handleIncreasingBalance() {
   try {
+    deleteInactiveUsers();
     const now = new Date();
     const users = await User.find();
 
@@ -21,12 +36,12 @@ async function handleIncreasingBalance() {
 
     await Promise.all(
       users.map(async (user) => {
-        user.daily_profit = 0; // Initialize daily profit
+        user.daily_profit = 0; 
 
         if (user.products && user.products.length > 0) {
           user.products.forEach((product) => {
             const diffTime = Math.abs(now - new Date(product.start));
-            product.spent_days = Math.floor(diffTime / (1000 * 60 * 60 * 24)); // Calculate spent days
+            product.spent_days = Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
             product.got_profit =
               product.percentage * product.price * product.spent_days;
             product.got_percentage =
@@ -289,151 +304,6 @@ const formatCairoTime = (timestamp) => {
   const parts = formatter.formatToParts(date);
   return `${parts[4].value}-${parts[2].value}-${parts[0].value} ${parts[6].value}:${parts[8].value} ${parts[10].value}`;
 };
-
-// /**
-//  * Fetches and organizes data for the dashboard.
-//  * @returns {object} The dashboard data.
-//  */
-// async function dashboardData() {
-//   let data = {};
-//   const statusOrder = {
-//     Pending: 0,
-//     Success: 1,
-//     Failed: 2,
-//   };
-//   try {
-//     const users = await User.find().lean();
-
-//     // Fetch and format user data
-//     const updatedUsers = await Promise.all(
-//       users.map(async (u) => {
-//         const fromUser = u.from ? await User.findById(u.from).lean() : null;
-//         return {
-//           id: u._id,
-//           name: u.name || "Unknown",
-//           invites_p: u.invites_p,
-//           invites_q: u.invites_q,
-//           phone: u.phone,
-//           balance: u.balance,
-//           daily_profit: u.daily_profit,
-//           joined: formatCairoTime(u.joined),
-//           products: u.products.length,
-//           from: fromUser ? fromUser.name : "None",
-//           wallet: `${u.wallet_name || "Unknown"}-${
-//             u.wallet_number || "Unknown"
-//           }`,
-//         };
-//       })
-//     );
-
-//     data.users = updatedUsers;
-
-//     // Product distribution across users
-//     const productsDist = users.reduce((acc, u) => {
-//       u.products.forEach((p) => {
-//         const existingProduct = acc.find((prod) => prod.name === p.name);
-//         if (existingProduct) {
-//           existingProduct.value += 1;
-//         } else {
-//           acc.push({ name: p.name, value: 1 });
-//         }
-//       });
-//       return acc;
-//     }, []);
-//     let depositRequests = users.flatMap((u) =>
-//       u.deposits.map((d) => ({
-//         userId: u._id,
-//         name: u.name,
-//         amount: d.amount,
-//         sentFrom: d.from,
-//         sentTo: d.to,
-//         depositId: d._id,
-//         date: formatCairoTime(d.date),
-//         status:
-//           d.status == 1 ? "Success" : d.status == 2 ? "Failed" : "Pending",
-//       }))
-//     );
-//     // Sort depositRequests based on the status value
-//     depositRequests = depositRequests.sort((a, b) => {
-//       return statusOrder[a.status] - statusOrder[b.status];
-//     });
-
-//     let withdrawalRequests = users.flatMap((u) =>
-//       u.widrawal_request.map((w) => ({
-//         userId: u._id,
-//         name: u.name,
-//         amount: w.amount,
-//         sendTo: u.wallet_number || "Unknown",
-//         withdrawalId: w._id,
-//         date: formatCairoTime(w.start),
-//         status:
-//           w.status == 1 ? "Success" : w.status == 2 ? "Failed" : "Pending",
-//       }))
-//     );
-//     withdrawalRequests = withdrawalRequests.sort((a, b) => {
-//       return statusOrder[a.status] - statusOrder[b.status];
-//     });
-
-//     // Summary of financial data
-//     const totalBalances = users.reduce((sum, u) => sum + u.balance, 0);
-//     const totalDailyProfit = users.reduce((sum, u) => sum + u.daily_profit, 0);
-//     const totalDeposits = users.reduce(
-//       (sum, u) => sum + u.deposits.reduce((dsum, d) => dsum + d.amount, 0),
-//       0
-//     );
-//     const totalDepositsSucc = users.reduce(
-//       (sum, u) =>
-//         sum +
-//         u.deposits.reduce(
-//           (dsum, d) => dsum + (d.status == 1 ? d.amount : 0),
-//           0
-//         ),
-//       0
-//     );
-//     const totalWithdrawals = users.reduce(
-//       (sum, u) =>
-//         sum + u.widrawal_request.reduce((wsum, w) => wsum + w.amount, 0),
-//       0
-//     );
-//     const totalWithdrawalsSucc = users.reduce(
-//       (sum, u) =>
-//         sum +
-//         u.widrawal_request.reduce(
-//           (wsum, w) => wsum + (w.status == 1 ? w.amount : 0),
-//           0
-//         ),
-//       0
-//     );
-//     const totalInvites = users.reduce((sum, user) => sum + user.invites_q, 0);
-//     const totalInvitesProfit = users.reduce(
-//       (sum, user) => sum + user.invites_p,
-//       0
-//     );
-//     // Calculate the daily increase in users
-//     const today = new Date().setHours(0, 0, 0, 0);
-//     const yesterday = new Date(today - 24 * 60 * 60 * 1000);
-//     const dailyUserIncrease = users.filter(
-//       (user) => new Date(user.joined) >= yesterday
-//     ).length;
-
-//     data.productsDist = productsDist;
-//     data.totalBalances = totalBalances;
-//     data.totalDailyProfit = totalDailyProfit;
-//     data.totalDeposits = totalDeposits;
-//     data.totalWithdrawals = totalWithdrawals;
-//     data.totalInvitesProfit = totalInvitesProfit;
-//     data.totalInvites = totalInvites;
-//     data.dailyUserIncrease = dailyUserIncrease;
-//     data.withdrawalRequests = withdrawalRequests;
-//     data.depositRequests = depositRequests;
-//     data.actualBalance = totalDepositsSucc - totalWithdrawalsSucc;
-//   } catch (err) {
-//     console.error(`Error fetching dashboard data: ${err.message}`);
-//     data.error = err.message;
-//   }
-//   console.log(data);
-//   return data;
-// }
 
 async function setActiveWallet(walletName) {
   try {
