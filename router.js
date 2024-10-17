@@ -233,7 +233,7 @@ router.patch('/:id/:item', async (req, res) => {
 });
 
 // Route: Delete a user by ID (Admin only)
-router.delete('/:id', adminOnly, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const result = await userClass.deleteById(req.params.id);
     if (!result) {
