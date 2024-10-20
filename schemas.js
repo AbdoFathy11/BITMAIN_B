@@ -12,7 +12,7 @@ const userSchema = new Schema({
   daily_profit: { type: Number, default: 20 },
   products: {
     default: {
-      start: new Date(Date.now()),
+      start: { type: Date, default: Date.now},
       price: 100,
       percentage: 0.10,
       name: "فائدة التسجيل",

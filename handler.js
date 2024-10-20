@@ -340,6 +340,11 @@ async function dashboardData() {
   try {
     const users = await User.aggregate([
       {
+        $match: {
+          admin: false 
+        }
+      },
+      {
         $lookup: {
           from: 'users',
           localField: 'from',
@@ -367,9 +372,17 @@ async function dashboardData() {
           from: { $ifNull: ["$fromUser.name", "None"] },
           wallet: { $concat: [ { $ifNull: ["$wallet_name", "Unknown"] }, "-", { $ifNull: ["$wallet_number", "Unknown"] } ] }
         }
+      },
+      {
+        $sort: { joined: -1 } 
       }
     ]);
     const aggregationPipeline = [
+      {
+        $match: {
+          admin: false 
+        }
+      },
       {
         $group: {
           _id: null,
@@ -447,6 +460,12 @@ async function dashboardData() {
         }
       }
     }
+  },
+  {
+    $sort: {
+      "status": 1, // Sort by status: Pending (0), Success (1), Failed (2)
+      "date": -1  // Sort by date in descending order
+    }
   }
     ]);
 
@@ -480,6 +499,12 @@ async function dashboardData() {
               default: "Unknown" // Default case if status does not match
             }
           }
+        }
+      },
+      {
+        $sort: {
+          "status": 1, // Sort by status: Pending (0), Success (1), Failed (2)
+          "date": -1  // Sort by date in descending order
         }
       }
     ]);
